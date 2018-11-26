@@ -7,7 +7,8 @@ module BattleShipEngine
       resolveMaybe,
       generateFirstMove,
       markCoordinateHit,
-      isPostRequest
+      isPostRequest,
+      placeMyShips
     ) where
 
 import qualified  Data.ByteString.Lazy.Char8 as L8
@@ -19,51 +20,58 @@ import Control.Concurrent
 import Parser.BattleShip
 import Data.Aeson (decode)
 
--- hiting :: Hit
--- hiting = CoordHit "A" "4" "HIT"
 
 startSendingRequests :: String -> String -> Int -> [Hit] -> MoveMsg -> IO()
 startSendingRequests game player nmoves hitmoves prevMove = do
-    putStrLn ("Waiting for connection happen " ++ game ++ ", player: " ++ player ++ ", nr: " ++ show nmoves ++ "...")
-
-    print "============================================================"
-    print hitmoves
-    print "============================================================"
-    
+    putStrLn ("Yout HIT: " ++ show (numberOfMyHits hitmoves) ++ ", Oponent HIT: " ++  show (numberOponentHits hitmoves) ++ ", NR: " ++ show nmoves ++ "...")
     -- threadDelay 2000000
     if (isPostRequest player nmoves) == True && nmoves == 0
         then do sendRequest game player prevMove
-                print "---- first move -----"
                 startSendingRequests game player (nmoves + 1) hitmoves prevMove
     else if (isPostRequest player nmoves) == True && nmoves /= 0 && (checkEndingOfGame prevMove) == False
         then do rndCoord <- generateRandomHit hitmoves
-                if (isSuccessful rndCoord) == True 
-                    then do body <- getRandomHit rndCoord prevMove
-                            sendRequest game player (resolveMaybe body)
-                            print "----- nth move ------"
-                            print body
-                            let hitmovesMod = markCoordinateHit hitmoves (resolveMaybe rndCoord)
-                            startSendingRequests game player (nmoves + 1) hitmovesMod (resolveMaybe body)
+                if (isSuccessful rndCoord) == True
+                    then do body <- getRandomHit rndCoord prevMove hitmoves -- Decided whever to send oponent hit or miss (getRandomHit)
+                            let modHitMoves = markRandomMove prevMove hitmoves  -- Mark for myself if oponent hited or missed my ship
+                            if allShipsDestroyed modHitMoves == False
+                                then do sendRequest game player (resolveMaybe body)
+                                        startSendingRequests game player (nmoves + 1) modHitMoves (resolveMaybe body)
+                            else if allShipsDestroyed modHitMoves == True
+                                then do let lastMove = generateLastMove prevMove hitmoves
+                                        sendRequest game player lastMove
+                                        printStatistics modHitMoves False
+                            else print "Something went wrong!"
                 else if (isSuccessful rndCoord) == False 
-                    then do sendRequest game player (generateLastMove prevMove)
+                    then do sendRequest game player (generateLastMove prevMove hitmoves)
                             print "Unfortunately you run out of moves! This shouldn't happen!"
                 else print "Something unpredictable happened!"
-                     
+    
     else if (checkEndingOfGame prevMove) == False
-        then do print "----- waiting for any request.. -------"
-                req <- receiveRequest game player
+        then do req <- receiveRequest game player
                 let parsered = parseMessage (L8.unpack req)
                 if (isSuccessfulEither parsered) == True 
-                    then do print "successfuly parsed message!"
-                            print parsered
-                            startSendingRequests game player (nmoves + 1) hitmoves (resolveEither parsered)
+                    then do let resultGet = getResultHit (resolveEither parsered)
+                            if (resultGet == "HIT") || (resultGet == "MISS")
+                                then do let movesHitConverted = convertToHitMovesPrev (resolveEither parsered)
+                                        let hitmovesMod = markCoordinateHit hitmoves (movesHitConverted) resultGet
+                                        startSendingRequests game player (nmoves + 1) hitmovesMod (resolveEither parsered)
+                            else startSendingRequests game player (nmoves + 1) hitmoves (resolveEither parsered)                     
                 else print "Failed parssing message! Maybe response from player took too long?"
     else if (checkEndingOfGame prevMove) == True
-        then do print "Congrats, you won the game! Found Game End Symbol (Empty Coordinates!)"
-                print "Game statistics: 12:45"
+        then do printStatistics hitmoves True
     else print "Something went terribly wrong! Exiting..."
-    
-    -- L8.putStrLn shotsInf
+
+
+printStatistics :: [Hit] -> Bool -> IO()
+printStatistics hits won = do
+    print "======================================================="
+    if won == True
+       then do print "Congratulations, you won!"
+    else print "Unfortunately, you lost!"
+    print "Game Finished, statistics some statistics...."
+    putStrLn ("Your hits are " ++ show (numberOfMyHits hits)) 
+    putStrLn ("Openent Hits: " ++ show (numberOponentHits hits))
+    print "======================================================="
 
 isPostRequest :: String -> Int -> Bool
 isPostRequest player nmove
@@ -73,18 +81,39 @@ isPostRequest player nmove
     | ("B" == player) && (nmove `mod` 2 == 1) = True
 
 
-getRandomHit :: Maybe Hit -> MoveMsg -> IO (Maybe MoveMsg)
-getRandomHit hitMove prevMove = do
+markRandomMove :: MoveMsg -> [Hit] -> [Hit]
+markRandomMove prevMove allMoves = 
+    let
+        convertedToMove = convertToHitMoves prevMove
+    in
+        if checkIfHitMyShip allMoves convertedToMove == True
+            then do markMyCoordinateHit allMoves convertedToMove "HIT"
+        else markMyCoordinateHit allMoves convertedToMove "MISS"
+
+
+getRandomHit :: Maybe Hit -> MoveMsg -> [Hit] -> IO (Maybe MoveMsg)
+getRandomHit hitMove prevMove allMoves = do
     if (isSuccessful hitMove) == False 
         then return Nothing
-    else return (Just (DicMsg[("coord",  CordList[CordValue [(xAxis (resolveMaybe hitMove))], CordValue (yAxis (resolveMaybe hitMove))]),("result", CordValue "HIT"), ("prev", prevMove)]))
+    -- TODO change to dinamic hit with check 
+    else if checkIfHitMyShip allMoves (convertToHitMoves prevMove) == True
+        then do return (Just (DicMsg[("coord",  CordList[CordValue [(xAxis (resolveMaybe hitMove))], CordValue (yAxis (resolveMaybe hitMove))]),("result", CordValue "HIT"), ("prev", prevMove)]))
+    else return (Just (DicMsg[("coord",  CordList[CordValue [(xAxis (resolveMaybe hitMove))], CordValue (yAxis (resolveMaybe hitMove))]),("result", CordValue "MISS"), ("prev", prevMove)]))
+
+generateLastMove :: MoveMsg -> [Hit] -> MoveMsg
+-- TODO change to dinamic hit with check
+generateLastMove prevMove allMoves
+    |  checkIfHitMyShip allMoves (convertToHitMoves prevMove) == True = DicMsg[("coord",  CordList[]),("result", CordValue "HIT"), ("prev", prevMove)]
+    |  otherwise = DicMsg[("coord",  CordList[]),("result", CordValue "MISS"), ("prev", prevMove)]
 
 generateFirstMove :: Maybe Hit -> IO (MoveMsg)
 generateFirstMove randomHit = do
     return (DicMsg[("coord",  CordList[CordValue [(xAxis (resolveMaybe randomHit))], CordValue (yAxis (resolveMaybe randomHit))]),("result", CordValue "null"), ("prev", CordValue "null")])
 
-generateLastMove :: MoveMsg -> MoveMsg
-generateLastMove prevMove = DicMsg[("coord",  CordList[]),("result", CordValue "HIT"), ("prev", prevMove)]
+
+
+
+
 
 isSuccessful :: (Maybe a) -> Bool
 isSuccessful (Nothing) = False
@@ -116,11 +145,12 @@ generateRandomHit hitmoves = do
 -- 1) HIT
 -- 2) MISS
 -- 3) CLEAN
-markCoordinateHit :: [Hit] -> Hit -> [Hit]
-markCoordinateHit allCoords hitCoord = 
-    let 
+markCoordinateHit :: [Hit] -> Hit -> String -> [Hit]
+markCoordinateHit allCoords hitCoord typeHit = 
+    let
+        index = resolveMaybe(getIndexOfCoords allCoords hitCoord 0)
         removedCoords = removeItem hitCoord allCoords
-        newCoord = CoordHit (xAxis hitCoord) (yAxis hitCoord) "HIT" (oponentShot hitCoord) (myShip hitCoord)
+        newCoord = CoordHit (xAxis hitCoord) (yAxis hitCoord) typeHit (oponentShot (allCoords!!index)) (myShip (allCoords!!index))
     in
         newCoord:removedCoords 
 
@@ -134,8 +164,9 @@ markCoordinateHit allCoords hitCoord =
 markMyCoordinateHit :: [Hit] -> Hit -> String -> [Hit]
 markMyCoordinateHit allCoords hitCoord hitType = 
     let 
+        index = resolveMaybe(getIndexOfCoords allCoords hitCoord 0)
         removedCoords = removeItem hitCoord allCoords
-        newCoord = CoordHit (xAxis hitCoord) (yAxis hitCoord) (shot hitCoord) hitType (myShip hitCoord)
+        newCoord = CoordHit (xAxis hitCoord) (yAxis hitCoord) (shot (allCoords!!index)) hitType (myShip (allCoords!!index))
     in
         newCoord:removedCoords 
 
@@ -148,9 +179,10 @@ markMyCoordinateHit allCoords hitCoord hitType =
 -- 2) NONE
 markMyShipCoordinate :: [Hit] -> Hit -> String -> [Hit]
 markMyShipCoordinate allCoords hitCoord shitExist = 
-    let 
+    let
+        index = resolveMaybe(getIndexOfCoords allCoords hitCoord 0)
         removedCoords = removeItem hitCoord allCoords
-        newCoord = CoordHit (xAxis hitCoord) (yAxis hitCoord) (shot hitCoord) (oponentShot hitCoord) shitExist
+        newCoord = CoordHit (xAxis hitCoord) (yAxis hitCoord) (shot (allCoords!!index)) (oponentShot (allCoords!!index)) shitExist
     in
         newCoord:removedCoords 
 
@@ -202,6 +234,20 @@ placeMyShips :: [Hit] -> [Hit] -> [Hit]
 placeMyShips allCoord [] = allCoord
 placeMyShips allCoord (head:tail) = placeMyShips (markMyShipCoordinate allCoord head "EXIST") tail
 
+convertToHitMovesPrev :: MoveMsg -> Hit
+convertToHitMovesPrev msg =
+    let
+        prev = getPreviosMove msg
+        coordX = getCoordX prev
+        coordY = getCoordY prev
+    in
+        CoordHit {xAxis = (convertStringToChar coordX), yAxis = coordY, shot = "CLEAN", oponentShot = "CLEAN", myShip = "NONE"}
+
+
+
+-- removeString :: MoveMsg -> MoveMsg
+-- removeString (sd, msg) = msg
+
 -- Functions for statistics
 numberOponentHits :: [Hit] -> Int
 numberOponentHits [] = 0
@@ -214,6 +260,28 @@ numberOponentHits (head:tail)
 numberOfMyHits :: [Hit] -> Int
 numberOfMyHits [] = 0
 numberOfMyHits (head:tail)
-    | (oponentShot head) == "HIT" = (numberOfMyHits tail) + 1
-    | (oponentShot head) == "MISS" = (numberOfMyHits tail) + 0
-    | (oponentShot head) == "CLEAN" = (numberOfMyHits tail) + 0
+    | (shot head) == "HIT" = (numberOfMyHits tail) + 1
+    | (shot head) == "MISS" = (numberOfMyHits tail) + 0
+    | (shot head) == "CLEAN" = (numberOfMyHits tail) + 0
+
+
+checkIfHitMyShip :: [Hit] -> Hit -> Bool
+checkIfHitMyShip [] opoShot = False
+checkIfHitMyShip (head:tail) opoShot
+    | ((xAxis head) == (xAxis opoShot)) && ((yAxis head) == (yAxis opoShot)) && ((myShip head) == "EXIST") = True
+    | otherwise = (checkIfHitMyShip tail opoShot)
+
+
+allShipsDestroyed :: [Hit] -> Bool
+allShipsDestroyed hits
+    | (numberOponentHits hits) - (length shipCoords) >= 0 = True
+    | otherwise = False
+
+
+convertToHitMoves :: MoveMsg -> Hit
+convertToHitMoves msg =
+    let
+        coordX = getCoordX msg
+        coordY = getCoordY msg
+    in
+        CoordHit {xAxis = (convertStringToChar coordX), yAxis = coordY, shot = "CLEAN", oponentShot = "CLEAN", myShip = "NONE"}

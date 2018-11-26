@@ -28,10 +28,6 @@ sendRequest game player body = do
   
   manager <- newManager tlsManagerSettings
 
-  print "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
-  print (encode body)
-  print "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
-
   initialRequest <- parseRequest ("http://battleship.haskell.lt/game/" ++ game ++ "/player/" ++ player)
   let request = initialRequest
           { 

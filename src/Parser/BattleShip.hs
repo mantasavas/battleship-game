@@ -9,11 +9,12 @@ module Parser.BattleShip
     checkEndingOfGame,
     resolveEithers,
     checkForBegining,
-    dataConverstionToObject
+    dataConverstionToObject,
   ) where
 
 import Parser.Parser
 import Data.Aeson (Value(Null), ToJSON, toJSON, object, (.=))
+import Data.Aeson.Types(emptyArray)
 
 printSimple :: String -> String
 printSimple msg = msg
@@ -85,9 +86,18 @@ secondPlayerCoord (_, msg) = msg
 dataConverstionToObject :: MoveMsg -> Value
 dataConverstionToObject msg
   | checkForBegining msg == True = firstObjectConverstion msg
+  | checkEndingOfGame msg == True = lastObjectConverstion msg (dataConverstionToObject (getPreviosMove msg))
   | otherwise = nthObjectConverstion msg (dataConverstionToObject (getPreviosMove msg))
 
 
+
+lastObjectConverstion :: MoveMsg -> Value -> Value
+lastObjectConverstion moveMsg prevObj = object
+  [
+    "coord" .= emptyArray, 
+    "result" .= (getResultHit moveMsg),
+    "prev" .= prevObj
+  ]
 
 firstObjectConverstion :: MoveMsg -> Value
 firstObjectConverstion moveMsg = object
@@ -108,6 +118,11 @@ nthObjectConverstion moveMsg prevObj = object
 checkForBegining :: MoveMsg -> Bool
 checkForBegining msg
   | (getResultHit msg) == "null" && (checkIfValueNull (getPreviosMove msg)) = True
+  | otherwise = False
+
+checkForEnding :: MoveMsg -> Bool
+checkForEnding msg
+  | (getCoorValue msg) == [] = True
   | otherwise = False
 
 getPreviosMove :: MoveMsg -> MoveMsg

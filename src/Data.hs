@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data ( cartesianProduct, Hit(..), initiliazeGameBoard, shipCoords, randomOponentHits ) where
+module Data ( cartesianProduct, Hit(..), initiliazeGameBoard, shipCoords, randomOponentHits, convertStringToChar ) where
 
 -- First => X axis (A, B, C....)
 -- Second => Y axis (1, 2, 3...)
@@ -26,6 +26,20 @@ randomOponentHits = [
       CoordHit {xAxis = 'A', yAxis = "7", shot = "CLEAN", oponentShot = "MIS", myShip = "NONE"}
     ]
 
+
+
+convertStringToChar :: String -> Char
+convertStringToChar str
+  | str == "A" = 'A'
+  | str == "B" = 'B'
+  | str == "C" = 'C'
+  | str == "D" = 'D'
+  | str == "E" = 'E'
+  | str == "F" = 'F'
+  | str == "G" = 'G'
+  | str == "H" = 'H'
+  | str == "I" = 'I'
+  | str == "J" = 'J'
 
 data MoveMsg = DicMsg [(String, MoveMsg)]
               | CordList [MoveMsg] 

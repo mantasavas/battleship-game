@@ -20,11 +20,11 @@ main = do
   shots <- initiliazeGameBoard
   rndHit <- generateRandomHit shots
   body <- generateFirstMove rndHit
-
-  if (isPostRequest player 0) == True
-    then do let shotsMarked = markCoordinateHit shots (resolveMaybe rndHit)
-            startSendingRequests game player 0 shotsMarked body
-  else startSendingRequests game player 0 shots body
+  let placedShips = placeMyShips shots shipCoords
+  -- if (isPostRequest player 0) == True
+  --   then do let shotsMarked = markCoordinateHit shots (resolveMaybe rndHit)
+  --           startSendingRequests game player 0 shotsMarked body
+  startSendingRequests game player 0 placedShips body
 
   putStrLn "Game has finished!"
 
