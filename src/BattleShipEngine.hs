@@ -25,7 +25,7 @@ import Data.Aeson (decode)
 
 startSendingRequests :: String -> String -> Int -> [Hit] -> MoveMsg -> IO()
 startSendingRequests game player nmoves hitmoves prevMove = do
-    putStrLn ("Yout HIT: " ++ show (numberOfMyHits hitmoves) ++ ", Oponent HIT: " ++  show (numberOponentHits hitmoves) ++ ", NR: " ++ show nmoves ++ "...")
+    putStrLn ("Your HIT: " ++ show (numberOfMyHits hitmoves) ++ ", Opponent HIT: " ++  show (numberOponentHits hitmoves) ++ ", NR: " ++ show nmoves ++ "...")
     -- threadDelay 2000000
     if (isPostRequest player nmoves) == True && nmoves == 0
         then do sendRequest game player prevMove
@@ -70,9 +70,9 @@ printStatistics hits won = do
     if won == True
        then do print "Congratulations, you won!"
     else print "Unfortunately, you lost!"
-    print "Game Finished, statistics some statistics...."
+    print "Game Finished!, time for some statistics...."
     putStrLn ("Your hits are " ++ show (numberOfMyHits hits)) 
-    putStrLn ("Openent Hits: " ++ show (numberOponentHits hits))
+    putStrLn ("Opponent hits: " ++ show (numberOponentHits hits))
     print "======================================================="
 
 isPostRequest :: String -> Int -> Bool
