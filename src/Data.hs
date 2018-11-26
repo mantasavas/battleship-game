@@ -15,9 +15,26 @@ data Hit = CoordHit {
 
 shipCoords :: [Hit]
 shipCoords = [
+      CoordHit {xAxis = 'F', yAxis = "9", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'G', yAxis = "9", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'H', yAxis = "9", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'I', yAxis = "9", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
       CoordHit {xAxis = 'A', yAxis = "1", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'B', yAxis = "1", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'B', yAxis = "2", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'C', yAxis = "2", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'D', yAxis = "4", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'E', yAxis = "4", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
       CoordHit {xAxis = 'D', yAxis = "5", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
-      CoordHit {xAxis = 'C', yAxis = "8", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"}
+      CoordHit {xAxis = 'E', yAxis = "5", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'A', yAxis = "10", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'B', yAxis = "10", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'C', yAxis = "10", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'B', yAxis = "9", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'A', yAxis = "6", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'B', yAxis = "6", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'C', yAxis = "6", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"},
+      CoordHit {xAxis = 'C', yAxis = "7", shot = "CLEAN", oponentShot = "CLEAN", myShip = "EXIST"}
     ]
 
 randomOponentHits = [

@@ -1,7 +1,6 @@
 module Main where
 
 import BattleShipEngine
-import Lib
 import Data
 import HttpRequest
 import Parser.Parser

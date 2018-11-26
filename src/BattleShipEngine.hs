@@ -8,7 +8,9 @@ module BattleShipEngine
       generateFirstMove,
       markCoordinateHit,
       isPostRequest,
-      placeMyShips
+      placeMyShips,
+      allShipsDestroyed,
+      checkIfHitMyShip
     ) where
 
 import qualified  Data.ByteString.Lazy.Char8 as L8
