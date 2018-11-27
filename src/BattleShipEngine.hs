@@ -113,10 +113,6 @@ generateFirstMove randomHit = do
     return (DicMsg[("coord",  CordList[CordValue [(xAxis (resolveMaybe randomHit))], CordValue (yAxis (resolveMaybe randomHit))]),("result", CordValue "null"), ("prev", CordValue "null")])
 
 
-
-
-
-
 isSuccessful :: (Maybe a) -> Bool
 isSuccessful (Nothing) = False
 isSuccessful (Just a) = True
@@ -140,8 +136,6 @@ generateRandomHit hitmoves = do
     return(randomHit)
 
 
--- Because list cannot be modified (variable immutable), we need 
--- to remove and when again append modified value of coordinate
 -- My shots as cordinates
 -- States can be:
 -- 1) HIT
